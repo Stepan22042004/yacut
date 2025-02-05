@@ -1,5 +1,6 @@
-from flask import jsonify, request
 import string
+
+from flask import jsonify, request
 
 from . import app
 from .models import URLMap
