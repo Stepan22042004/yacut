@@ -18,25 +18,21 @@
               <div>
                 <div>
                   {{ form.original_link(class="form-control form-control-lg py-2 mb-3", id="form-title", placeholder="Длинная ссылка") }}
-                  {% if form.original_link.errors %}
                     <p><span style="color:red">
                       {% for error in form.original_link.errors %}
                               {{ error }}
                       {% endfor %}
                     </span></p>
-                  {% endif %}
                 </div>
                 <div>
                   {{ form.custom_id(class="form-control form-control-lg py-2 mb-3", id="form-link", placeholder="Ваш вариант короткой ссылки") }}
-                  {% if form.custom_id.errors %}
                     <p><span style="color:red">
                       {% for error in form.custom_id.errors %}
-                              {{ error }}
+                        {{ error }}
                       {% endfor %}
                     </span></p>
-                  {% endif %}
                 </div>
-                {{ form.submit(class="btn btn-primary", value="Создать") }}
+                  {{ form.submit(class="btn btn-primary", value="Создать") }}
               </div>
             </form>
           </div>
@@ -52,22 +48,19 @@
           <div class="col-sm">
             <p class="text-center">
               {% with messages = get_flashed_messages() %}
-                {% if messages %}
-                  {% for message in messages %}
-      <h5 class="text-center">
-        <a style="text-decoration: none; color: inherit;">
-          {{ message }}
-        </a>
-        {% if short_url %}
-        <a href="{{ short_url }}" style="text-decoration: none; color: inherit;">
-          {{ short_url}}
-        </a>
-        {% endif %}
-      </h5>
+                {% for message in messages %}
+                  <h5 class="text-center">
+                    <a style="text-decoration: none; color: inherit;">
+                      {{ message }}
+                    </a>
+                  </h5>
                 {% endfor %}
-  {% endif %}
-{% endwith %}
-
+              {% endwith %}
+              {% if short %}
+                <a href="{{ short }}" style="text-decoration: none; color: inherit;">
+                  {{ short}}
+                </a>
+              {% endif %}
             </p>
           </div>
           <div class="col-sm">
