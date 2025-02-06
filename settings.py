@@ -9,6 +9,7 @@ MAX_ORIGINAL_LEN = 1000
 CHARACTERS = (string.ascii_uppercase +
               string.ascii_lowercase + string.digits)
 REGEX = f"^[{re.escape(CHARACTERS)}]+$"
+REDIRECT_VIEW = 'redirect_view'
 ITERATIONS = 100
 
 

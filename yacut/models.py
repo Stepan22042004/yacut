@@ -2,11 +2,15 @@ from datetime import datetime
 import random
 import re
 
-from flask import request
+from flask import url_for
 
 from yacut import db
 from settings import (MAX_SHORT_LEN, MAX_GENERATED_LEN, CHARACTERS,
-                      MAX_ORIGINAL_LEN, ITERATIONS, REGEX)
+                      MAX_ORIGINAL_LEN, ITERATIONS, REGEX, REDIRECT_VIEW)
+from yacut.exceptions import (ItemAlreadyExistsError,
+                              IncorrectShortError, TooLongError)
+
+EXISTS = 'Предложенный вариант короткой ссылки уже существует.'
 
 
 class URLMap(db.Model):
@@ -18,18 +22,15 @@ class URLMap(db.Model):
     def to_dict(self):
         return dict(
             url=self.original,
-            short_link=request.url_root + self.short,
+            short_link=self.get_short_url(),
         )
 
     @staticmethod
     def get(short):
-        url_map = URLMap.query.filter_by(short=short).first()
-        if url_map:
-            return url_map.original
-        return None
+        return URLMap.query.filter_by(short=short).first()
 
     def get_short_url(self):
-        return request.url_root + self.short
+        return url_for(REDIRECT_VIEW, short=self.short, _external=True)
 
     @staticmethod
     def get_unique_short_id():
@@ -37,22 +38,22 @@ class URLMap(db.Model):
             short = ''.join(random.choices(CHARACTERS, k=MAX_GENERATED_LEN))
             if URLMap.get(short) is None:
                 return short
+        return ''.join(random.choices(CHARACTERS, k=MAX_GENERATED_LEN))
 
     @staticmethod
-    def create_short(url, short=None):
-        url_map = None
-        message_in_html = None
-        if short is not None and short != '':
-            if URLMap.get(short):
-                return url_map, message_in_html
-            if (len(short) > MAX_SHORT_LEN or
-               re.fullmatch(REGEX, short) is None):
-                return url_map, message_in_html
-        else:
+    def create(url, short=None, form=False):
+        if not short:
             short = URLMap.get_unique_short_id()
-
+        else:
+            if not form and ((len(short) > MAX_SHORT_LEN or
+               re.fullmatch(REGEX, short) is None)):
+                raise IncorrectShortError
+            if URLMap.get(short):
+                raise ItemAlreadyExistsError
+        if not form and len(url) > MAX_ORIGINAL_LEN:
+            raise TooLongError
         url_map = URLMap(original=url, short=short)
-        message_in_html = url_map.get_short_url()
+        #message_in_html = url_map.get_short_url()
         db.session.add(url_map)
         db.session.commit()
-        return url_map, message_in_html
+        return url_map

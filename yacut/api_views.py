@@ -4,12 +4,15 @@ from http import HTTPStatus
 from . import app
 from .models import URLMap
 from yacut.error_handlers import InvalidAPIUsage
+from yacut.exceptions import (ItemAlreadyExistsError,
+                              IncorrectShortError, TooLongError)
 
 REQUIRED = '"url" является обязательным полем!'
 NO_BODY = 'Отсутствует тело запроса'
 EXISTS = 'Предложенный вариант короткой ссылки уже существует.'
 NOT_VALID = 'Указано недопустимое имя для короткой ссылки'
 NOT_FOUND = 'Указанный id не найден'
+TOO_LONG = 'Слишком длинный url'
 
 
 @app.route('/api/id/', methods=['POST'])
@@ -20,14 +23,14 @@ def create_short():
 
     if 'url' not in data:
         raise InvalidAPIUsage(REQUIRED)
-
-    url_map = URLMap.create_short(data['url'], data.get('custom_id'))[0]
-
-    if url_map is None:
-        if URLMap.get(data['custom_id']):
-            raise InvalidAPIUsage(EXISTS)
-        else:
-            raise InvalidAPIUsage(NOT_VALID)
+    try:
+        url_map = URLMap.create(data['url'], data.get('custom_id'))
+    except ItemAlreadyExistsError:
+        raise InvalidAPIUsage(EXISTS)
+    except IncorrectShortError:
+        raise InvalidAPIUsage(NOT_VALID)
+    except TooLongError:
+        raise InvalidAPIUsage(TOO_LONG)
 
     return jsonify(url_map.to_dict()), HTTPStatus.CREATED
 
@@ -36,5 +39,5 @@ def create_short():
 def get_original(short):
     url = URLMap.get(short)
     if url:
-        return jsonify({'url': url}), HTTPStatus.OK
+        return jsonify({'url': url.original}), HTTPStatus.OK
     raise InvalidAPIUsage(message=NOT_FOUND, status_code=HTTPStatus.NOT_FOUND)
