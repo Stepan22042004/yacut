@@ -1,12 +1,12 @@
 from datetime import datetime
 import random
+import re
 
-from flask import url_for, flash
+from flask import request
 
 from yacut import db
-from yacut.error_handlers import InvalidAPIUsage, APINotFound
 from settings import (MAX_SHORT_LEN, MAX_GENERATED_LEN, CHARACTERS,
-                      MAX_ORIGINAL_LEN, INDEX, ITERATIONS)
+                      MAX_ORIGINAL_LEN, ITERATIONS, REGEX)
 
 
 class URLMap(db.Model):
@@ -18,63 +18,41 @@ class URLMap(db.Model):
     def to_dict(self):
         return dict(
             url=self.original,
-            short_link=url_for(INDEX, _external=True) + self.short,
+            short_link=request.url_root + self.short,
         )
+
+    @staticmethod
+    def get(short):
+        url_map = URLMap.query.filter_by(short=short).first()
+        if url_map:
+            return url_map.original
+        return None
+
+    def get_short_url(self):
+        return request.url_root + self.short
 
     @staticmethod
     def get_unique_short_id():
         for i in range(ITERATIONS):
             short = ''.join(random.choices(CHARACTERS, k=MAX_GENERATED_LEN))
-            if URLMap.query.filter_by(short=short).first() is None:
-                break
-        return short
+            if URLMap.get(short) is None:
+                return short
 
     @staticmethod
-    def create_short(url, short=None, api=True):
-        urlmap = None
-        if short is not None:
-            if URLMap.query.filter_by(
-                short=short
-            ).first():
-                if api is True:
-                    raise InvalidAPIUsage(
-                        'Предложенный вариант короткой ссылки уже существует.'
-                    )
-                else:
-                    flash(
-                        'Предложенный вариант короткой ссылки уже существует.'
-                    )
-                    return urlmap
+    def create_short(url, short=None):
+        url_map = None
+        message_in_html = None
+        if short is not None and short != '':
+            if URLMap.get(short):
+                return url_map, message_in_html
             if (len(short) > MAX_SHORT_LEN or
-                    any(c not in CHARACTERS for c in short)):
-                if api is True:
-                    raise InvalidAPIUsage(
-                        'Указано недопустимое имя для короткой ссылки'
-                    )
-                else:
-                    flash('Указано недопустимое имя для короткой ссылки')
-                    return urlmap
+               re.fullmatch(REGEX, short) is None):
+                return url_map, message_in_html
         else:
             short = URLMap.get_unique_short_id()
 
-        urlmap = URLMap(original=url, short=short)
-        db.session.add(urlmap)
+        url_map = URLMap(original=url, short=short)
+        message_in_html = url_map.get_short_url()
+        db.session.add(url_map)
         db.session.commit()
-        if api is True:
-            return urlmap
-        else:
-            flash('Ваша новая ссылка готова:')
-            return urlmap
-
-    @staticmethod
-    def get_url_by_id(short, api=True):
-        urlmap = URLMap.query.filter_by(short=short).first()
-        if urlmap:
-            return urlmap.original
-        if api is True:
-            raise APINotFound('Указанный id не найден')
-        else:
-            return None
-
-    def get_short_url(self):
-        return url_for(INDEX, _external=True) + self.short
+        return url_map, message_in_html

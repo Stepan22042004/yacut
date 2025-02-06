@@ -1,16 +1,14 @@
 import os
 import string
+import re
 
-HTTP_OK = 200
-HTTP_NOT_FOUND = 404
-HTTP_BAD_REQUEST = 400
-HTTP_SERVER_ERROR = 500
+
 MAX_SHORT_LEN = 16
 MAX_GENERATED_LEN = 6
 MAX_ORIGINAL_LEN = 1000
 CHARACTERS = (string.ascii_uppercase +
               string.ascii_lowercase + string.digits)
-INDEX = 'index_view'
+REGEX = f"^[{re.escape(CHARACTERS)}]+$"
 ITERATIONS = 100
 
 
