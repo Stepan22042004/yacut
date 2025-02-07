@@ -8,3 +8,7 @@ class IncorrectShortError(Exception):
 
 class TooLongError(Exception):
     pass
+
+
+class RandomError(Exception):
+    pass

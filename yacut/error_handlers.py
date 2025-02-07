@@ -1,5 +1,6 @@
-from flask import render_template, jsonify
 from http import HTTPStatus
+
+from flask import render_template, jsonify
 
 from yacut import app, db
 

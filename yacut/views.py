@@ -1,15 +1,11 @@
-from flask import redirect, render_template, abort, flash
 from http import HTTPStatus
+
+from flask import redirect, render_template, abort, flash
 
 from . import app
 from .forms import LinkForm
 from .models import URLMap
-from yacut.exceptions import ItemAlreadyExistsError
-
-EXISTS = 'Предложенный вариант короткой ссылки уже существует.'
-NOT_VALID = 'Указано недопустимое имя для короткой ссылки'
-NEW = 'Ваша новая ссылка готова:'
-TOO_LONG = 'Слишком длинный url'
+from yacut.exceptions import ItemAlreadyExistsError, RandomError
 
 
 @app.route('/', methods=['GET', 'POST'])
@@ -21,10 +17,10 @@ def index_view():
         url_map = URLMap.create(
             form.original_link.data,
             form.custom_id.data,
-            form=True
+            flag=True
         )
-    except ItemAlreadyExistsError:
-        flash(EXISTS)
+    except (ItemAlreadyExistsError, RandomError) as e:
+        flash(str(e))
         return render_template('index.html', form=form)
 
     return render_template(
@@ -36,7 +32,7 @@ def index_view():
 
 @app.route('/<string:short>')
 def redirect_view(short):
-    url = URLMap.get(short)
-    if url:
-        return redirect(url.original)
+    url_map = URLMap.get(short)
+    if url_map:
+        return redirect(url_map.original)
     return abort(HTTPStatus.NOT_FOUND)

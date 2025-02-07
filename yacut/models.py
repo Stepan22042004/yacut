@@ -8,9 +8,13 @@ from yacut import db
 from settings import (MAX_SHORT_LEN, MAX_GENERATED_LEN, CHARACTERS,
                       MAX_ORIGINAL_LEN, ITERATIONS, REGEX, REDIRECT_VIEW)
 from yacut.exceptions import (ItemAlreadyExistsError,
-                              IncorrectShortError, TooLongError)
+                              IncorrectShortError,
+                              TooLongError, RandomError)
 
 EXISTS = 'Предложенный вариант короткой ссылки уже существует.'
+NOT_VALID = 'Указано недопустимое имя для короткой ссылки'
+TOO_LONG = 'Слишком длинный url'
+RANDOM = 'Не удалось сгенерировать уникальную короткую ссылку'
 
 
 class URLMap(db.Model):
@@ -38,22 +42,21 @@ class URLMap(db.Model):
             short = ''.join(random.choices(CHARACTERS, k=MAX_GENERATED_LEN))
             if URLMap.get(short) is None:
                 return short
-        return ''.join(random.choices(CHARACTERS, k=MAX_GENERATED_LEN))
+        raise RandomError(RANDOM)
 
     @staticmethod
-    def create(url, short=None, form=False):
+    def create(url, short=None, flag=False):
         if not short:
             short = URLMap.get_unique_short_id()
         else:
-            if not form and ((len(short) > MAX_SHORT_LEN or
+            if not flag and ((len(short) > MAX_SHORT_LEN or
                re.fullmatch(REGEX, short) is None)):
-                raise IncorrectShortError
+                raise IncorrectShortError(NOT_VALID)
             if URLMap.get(short):
-                raise ItemAlreadyExistsError
-        if not form and len(url) > MAX_ORIGINAL_LEN:
-            raise TooLongError
+                raise ItemAlreadyExistsError(EXISTS)
+        if not flag and len(url) > MAX_ORIGINAL_LEN:
+            raise TooLongError(TOO_LONG)
         url_map = URLMap(original=url, short=short)
-        #message_in_html = url_map.get_short_url()
         db.session.add(url_map)
         db.session.commit()
         return url_map
